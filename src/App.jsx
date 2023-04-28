@@ -1,24 +1,69 @@
 import './App.css'
-import responseMovies from './mocks/with-results.json'
-import noResults from './mocks/no-results.json'
+import { useEffect, useState, useRef } from 'react'
 import {Movies} from './components/Movies'
+import { useMovies } from './hooks/useMovies'
+
+function useSearch(){
+  const [search, updateSearch] = useState('')
+  const [error, setError] = useState(null)
+  const isFirstInput = useRef(true)
+
+  useEffect(() => {
+    if(isFirstInput.current){
+      isFirstInput.current = search === ''
+      return
+    }
+
+    if (search === ''){
+      setError('No se puede buscar una pelicula vacia')
+      return
+    }
+
+    if (search.match(/^\d+$/)) {
+      setError('No se puede buscar con un numero')
+      return
+    }
+
+    if (search.length < 3) {
+      setError('La busqueda debe tener al menos 3 caracteres')
+      return
+    }
+
+    setError(null)
+  }, [search])
+
+  return {search, updateSearch, error}
+}
 
 function App() {
-  const movies = responseMovies.Search
+  const {search, updateSearch, error} = useSearch()
+  const {movies, getMovies, loading} = useMovies({search})
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    getMovies()
+  }
+
+  const handleChange = (event) =>{
+    updateSearch(event.target.value)
+  }
 
   return (
     <div className='page'>
       <header>
         <div>
-          <form action="">
-            <input placeholder='Avengers' />
+          <form className='form' onSubmit={handleSubmit}>
+            <input onChange={handleChange} value={search} name='query' placeholder='Avengers'/>
             <button>buscar</button>
           </form>
+          {error && <p style={{color: 'red'}}>{error}</p>}
         </div>
       </header>
 
       <main>
-        <Movies movies={movies}/>
+        {
+          loading ? <p>Loading...</p> : <Movies movies={movies}/>
+        }
       </main>
     </div>
   )
