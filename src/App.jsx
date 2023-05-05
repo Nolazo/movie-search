@@ -1,7 +1,8 @@
 import './App.css'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import {Movies} from './components/Movies'
 import { useMovies } from './hooks/useMovies'
+import debounce from 'just-debounce-it'
 
 function useSearch(){
   const [search, updateSearch] = useState('')
@@ -36,28 +37,42 @@ function useSearch(){
 }
 
 function App() {
+  const [sort, setSort] = useState(false)
   const {search, updateSearch, error} = useSearch()
-  const {movies, getMovies, loading} = useMovies({search})
+  const {movies, getMovies, loading} = useMovies({search, sort})
+
+  //useCallback es igual que useMemo pero para funciones
+  const debouncedGetMovies = useCallback(
+    debounce(search => {
+      getMovies({search})
+    }, 350)
+    ,[]
+  )
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    getMovies()
+    getMovies({search})
+  }
+
+  const handleSort = () => {
+    setSort(!sort)
   }
 
   const handleChange = (event) =>{
-    updateSearch(event.target.value)
+    const newSearch = event.target.value
+    updateSearch(newSearch)
+    debouncedGetMovies(newSearch)
   }
 
   return (
     <div className='page'>
       <header>
-        <div>
           <form className='form' onSubmit={handleSubmit}>
             <input onChange={handleChange} value={search} name='query' placeholder='Avengers'/>
+            <input type="checkbox" onChange={handleSort} checked={sort}/>
             <button>buscar</button>
           </form>
           {error && <p style={{color: 'red'}}>{error}</p>}
-        </div>
       </header>
 
       <main>
